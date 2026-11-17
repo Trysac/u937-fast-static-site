@@ -1,42 +1,27 @@
-# fast-static-site
+# trysac-fast-static-site
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![CI](https://github.com/Trysac/u937-fast-static-site/actions/workflows/ci.yml/badge.svg)](https://github.com/Trysac/u937-fast-static-site/actions/workflows/ci.yml)
-
-Incremental static site generator with a hand-written CommonMark subset, strict templates and a dependency graph that rebuilds only the pages a change touches
-
-## Problem
-
-Describe in two or three sentences the concrete problem this utility solves, who hits it, and what
-they do today without it. Replace this paragraph when the first real feature lands.
-
-## Install
-
-```sh
-cargo add trysac-fast-static-site --git https://github.com/Trysac/u937-fast-static-site
-```
-
-Requires Rust 1.88 or newer. No dependencies outside the standard library.
+Incremental static site generator with a hand-written `CommonMark` 0.31.2 subset, strict HTML templates, and a fine-grained dependency graph that rebuilds only the pages touched by a change.
 
 ## Usage
 
 ```rust
-use fast_static_site::{Error, normalize};
+use std::path::PathBuf;
+use fast_static_site::{Config, MemFs, Site, markdown_to_html};
 
-// normalize trims surrounding whitespace and lower-cases the text.
-assert_eq!(normalize("  Hello World ").as_deref(), Ok("hello world"));
+let html = markdown_to_html("# Hi *there*\n\nA `x<y` [link](https://example.test \"T\")");
+assert!(html.starts_with("<h1>Hi <em>there</em></h1>"));
 
-// Blank input is rejected explicitly instead of returning an empty string.
-assert_eq!(fast_static_site::normalize("   "), Err(Error::Blank));
+let mut fs = MemFs::new();
+fs.insert("templates/page.html", "<h1>{{ page.title }}</h1>{{ page.content | safe }}");
+fs.insert("content/index.md", "---\ntitle: Home\n---\nHello!");
+let mut site = Site::new(Box::new(fs), Config::default());
+assert_eq!(site.build().unwrap().rendered, 1);
+assert_eq!(site.rebuild(&Vec::<PathBuf>::new()).unwrap().rendered, 0);
 ```
 
-## Documentation
+## Features
 
-- [Architecture](docs/ARCHITECTURE.md) and [decisions](docs/decisions/)
-- [Testing](docs/TESTING.md) and [security](docs/SECURITY.md)
-- [Project record](docs/PROJECT.md) and [stack](docs/STACK.md)
-- [Changelog](CHANGELOG.md) and [contributing guide](CONTRIBUTING.md)
-
-## License
-
-[MIT](LICENSE) (c) 2026 Miguel Gomez
+- **`CommonMark` 0.31.2 Subset**: Thematic breaks, ATX headings, fenced code blocks with `language-<info>`, paragraphs, block quotes (up to depth 32), tight bullet and ordered lists, code spans, emphasis/strong (`*` and `_` without intraword `_`), inline links with titles, autolinks, and hard line breaks. Raw HTML in Markdown is always escaped.
+- **Strict Templates**: `{{ path }}` (HTML-escaped), `{{ path | safe }}`, `{% if path %}` / `{% else %}` / `{% endif %}`, `{% for x in path %}` / `{% endfor %}`, and `{% include "name.html" %}` with cycle detection and unknown-variable errors.
+- **Incremental Dependency Graph**: 64-bit FNV-1a content hashing of front matter, Markdown bodies, templates, and outputs. Editing a page body re-renders only that page; editing front matter re-renders that page and section index pages in the same section.
+- **Live Reload Protocol**: Injects `<script src="/__livereload.js"></script>` before `</body>` when enabled and formats Server-Sent Events (`reload_event`).

@@ -2,35 +2,23 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
-use std::fmt;
+/// Command-line interface runner for `fast-static-site`.
+pub mod cli;
+/// Error type and machine-readable codes.
+pub mod error;
+/// Virtual and disk file system abstractions.
+pub mod fs;
+/// Hand-written CommonMark 0.31.2 subset parser and HTML renderer.
+pub mod markdown;
+/// Incremental static site builder, dependency graph, and live-reload event formatter.
+pub mod site;
+/// Strict HTML template parser and evaluator.
+pub mod template;
 
-/// Why an input was rejected.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[non_exhaustive]
-pub enum Error {
-    /// The input is empty or holds only whitespace.
-    Blank,
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Blank => f.write_str("input is blank"),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
-
-/// Trims surrounding whitespace and lower-cases the text.
-///
-/// # Errors
-///
-/// Returns [`Error::Blank`] when nothing is left after trimming, instead of an empty string.
-pub fn normalize(input: &str) -> Result<String, Error> {
-    let trimmed = input.trim();
-    if trimmed.is_empty() {
-        return Err(Error::Blank);
-    }
-    Ok(trimmed.to_lowercase())
-}
+pub use error::{ErrorCode, SiteError};
+pub use fs::{DiskFs, MemFs, SiteFs};
+pub use markdown::{escape_html, markdown_to_html};
+pub use site::{
+    BuildReport, Config, DEFAULT_MAX_SOURCE_BYTES, LIVE_RELOAD_SNIPPET, Site, fnv1a64, reload_event,
+};
+pub use template::{DEFAULT_MAX_INCLUDE_DEPTH, Template, Value};

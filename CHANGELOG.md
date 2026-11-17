@@ -9,4 +9,5 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Added incremental static site generator (`Site`, `SiteFs`, `DiskFs`, `MemFs`), CommonMark subset (`markdown_to_html`), strict template engine (`Template`, `Value`), live-reload SSE formatter (`reload_event`), and CLI (`cli::run`).
 - Initial project structure from the factory utility template.
